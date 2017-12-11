@@ -3,8 +3,7 @@ Version: SUBST_PROJECT_VERSION
 Type: Package
 Title: R Interface for H2O
 Date: SUBST_PROJECT_DATE
-Author: The H2O.ai team
-Authors@R: The H2O.ai team
+Author: The H2O.AI team
 Maintainer: Tom Kraljevic <tomk@0xdata.com>
 Description: R scripting functionality for H2O, the open source
   math engine for big data that computes parallel distributed
