@@ -3,6 +3,8 @@ def NODE_LABEL = 'docker'
 // FIXME
 def S3_ROOT = 's3://test.0xdata.com/release-test/h2o'
 def AWS_CREDENTIALS_ID = 'AWS S3 Credentials'
+// FIXME
+def RELEASE_BRANCH_PREFIX = 'mr/ita'
 
 def buildConfig = null
 def insideDocker = null
@@ -17,15 +19,13 @@ try {
 
                 setReleaseJobProperties()
 
-                env.BRANCH_DIR = "${env.WORKSPACE}/release-dir" // "/builds2/h2o/${env.BRANCH_NAME}"
+                env.BRANCH_DIR = "${env.WORKSPACE}/release-dir/h2o/${env.BRANCH_NAME}" // "/builds2/h2o/${env.BRANCH_NAME}"
                 env.BUILD_NUMBER_DIR = "${env.BRANCH_DIR}/${currentBuild.number}"
                 env.DATA_DIR = "/home/0xdiag"
 
                 env.BUILD_LOG_FILE = "${env.BUILD_NUMBER_DIR}/log.txt"
 
                 env.GRADLE_OPTS = "-Xmx4g -XX:MaxPermSize=512m"
-
-                env.NIGHTLY_BUILD = "true"
 
                 env.PYTHON_VERSION = '2.7'
                 env.R_VERSION = '3.4.1'
@@ -50,80 +50,80 @@ try {
                     }
                 }
 
-                stage('Build') {
-                    insideDocker([], buildConfig.DEFAULT_IMAGE, buildConfig.DOCKER_REGISTRY, 2, 'HOURS', "-v ${env.BRANCH_DIR}:${env.BRANCH_DIR}") {
-                        sh """
-        
-                            # Log commands.
-                            set -x
-                            # Stop on error.
-                            set -e
-        
-                            export JAVA_HOME=/usr/lib/jvm/java-8-oracle
-                            echo "Activating Python ${env.PYTHON_VERSION}"
-                            . /envs/h2o_env_python${env.PYTHON_VERSION}/bin/activate
-                            echo "Activating R ${env.R_VERSION}"
-                            activate_R_${env.R_VERSION}
-        
-                            mkdir -p ${env.BUILD_NUMBER_DIR}
-        
-                            # Do everything in the job directory.  Ignore the standard jenkins workspace.
-                            cd ${env.BUILD_NUMBER_DIR}
-        
-                            # Log some stuff for debug purposes.
-                            date
-                            pwd
-                            env
-                            echo \$PATH
-                            which java
-                            java -version
-                            du -h
-        
-                            cd h2o
-        
-                            # Update the build number.
-                            mkdir -p ci
-                            echo "BUILD_NUMBER=${currentBuild.number}" > gradle/buildnumber.properties
-                            echo "BUILD_BRANCH_NAME=${env.BRANCH_NAME}" > gradle/git.properties
-                            echo "BUILD_HASH=${env.THIS_BUILD_GIT_HASH_LONG}" >> gradle/git.properties
-                            echo "BUILD_HASH_SHORT=${env.THIS_BUILD_GIT_HASH_SHORT}" >> gradle/git.properties
-        
-                            # Log some git stuff for debug purposes.
-                            echo
-                            echo GIT INFO
-                            echo
-                            git branch | grep '*' | sed 's/* //'
-                            git log -1 --format="%H"
-                            git describe --always --dirty
-                            git status
-                            if [ -e ../../lastSuccessfulBuild ]; then
-                                echo
-                                echo
-                                git log --pretty=oneline ${env.LAST_SUCCESSFUL_BUILD_GIT_HASH_SHORT}..${env.THIS_BUILD_GIT_HASH_SHORT}
-                                echo
-                                echo
-                                git log ${env.LAST_SUCCESSFUL_BUILD_GIT_HASH_SHORT}..${env.THIS_BUILD_GIT_HASH_SHORT}
-                                echo
-                                echo
-                            fi
-        
-                            # Do the build.
-                            if [ -n "${env.DATA_DIR}" ]; then
-                                rm -f -r smalldata
-                                ln -s "${env.DATA_DIR}/smalldata"
-                                rm -f -r bigdata
-                                ln -s "${env.DATA_DIR}/bigdata"
-                            else
-                                ./gradlew syncSmalldata
-                            fi
-                            ./gradlew build -x test
-                            ./gradlew buildH2oDevDist
-                        """
-                    }
-                }
-
-                env.PROJECT_VERSION = sh(script: "cd ${env.BUILD_NUMBER_DIR}/h2o && cat target/project_version", returnStdout: true).trim()
-                env.SHA256_HASH = sh(script: "cd ${env.BUILD_NUMBER_DIR}/h2o && sha256sum target/h2o-*${currentBuild.number}.zip", returnStdout: true).trim()
+//                stage('Build') {
+//                    insideDocker([], buildConfig.DEFAULT_IMAGE, buildConfig.DOCKER_REGISTRY, 2, 'HOURS', "-v ${env.BRANCH_DIR}:${env.BRANCH_DIR}") {
+//                        sh """
+//
+//                            # Log commands.
+//                            set -x
+//                            # Stop on error.
+//                            set -e
+//
+//                            export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+//                            echo "Activating Python ${env.PYTHON_VERSION}"
+//                            . /envs/h2o_env_python${env.PYTHON_VERSION}/bin/activate
+//                            echo "Activating R ${env.R_VERSION}"
+//                            activate_R_${env.R_VERSION}
+//
+//                            mkdir -p ${env.BUILD_NUMBER_DIR}
+//
+//                            # Do everything in the job directory.  Ignore the standard jenkins workspace.
+//                            cd ${env.BUILD_NUMBER_DIR}
+//
+//                            # Log some stuff for debug purposes.
+//                            date
+//                            pwd
+//                            env
+//                            echo \$PATH
+//                            which java
+//                            java -version
+//                            du -h
+//
+//                            cd h2o
+//
+//                            # Update the build number.
+//                            mkdir -p ci
+//                            echo "BUILD_NUMBER=${currentBuild.number}" > gradle/buildnumber.properties
+//                            echo "BUILD_BRANCH_NAME=${env.BRANCH_NAME}" > gradle/git.properties
+//                            echo "BUILD_HASH=${env.THIS_BUILD_GIT_HASH_LONG}" >> gradle/git.properties
+//                            echo "BUILD_HASH_SHORT=${env.THIS_BUILD_GIT_HASH_SHORT}" >> gradle/git.properties
+//
+//                            # Log some git stuff for debug purposes.
+//                            echo
+//                            echo GIT INFO
+//                            echo
+//                            git branch | grep '*' | sed 's/* //'
+//                            git log -1 --format="%H"
+//                            git describe --always --dirty
+//                            git status
+//                            if [ -e ../../lastSuccessfulBuild ]; then
+//                                echo
+//                                echo
+//                                git log --pretty=oneline ${env.LAST_SUCCESSFUL_BUILD_GIT_HASH_SHORT}..${env.THIS_BUILD_GIT_HASH_SHORT}
+//                                echo
+//                                echo
+//                                git log ${env.LAST_SUCCESSFUL_BUILD_GIT_HASH_SHORT}..${env.THIS_BUILD_GIT_HASH_SHORT}
+//                                echo
+//                                echo
+//                            fi
+//
+//                            # Do the build.
+//                            if [ -n "${env.DATA_DIR}" ]; then
+//                                rm -f -r smalldata
+//                                ln -s "${env.DATA_DIR}/smalldata"
+//                                rm -f -r bigdata
+//                                ln -s "${env.DATA_DIR}/bigdata"
+//                            else
+//                                ./gradlew syncSmalldata
+//                            fi
+//                            ./gradlew build -x test
+//                            ./gradlew buildH2oDevDist
+//                        """
+//                    }
+//                }
+//
+//                env.PROJECT_VERSION = sh(script: "cd ${env.BUILD_NUMBER_DIR}/h2o && cat target/project_version", returnStdout: true).trim()
+//                env.SHA256_HASH = sh(script: "cd ${env.BUILD_NUMBER_DIR}/h2o && sha256sum target/h2o-*${currentBuild.number}.zip", returnStdout: true).trim()
 
 //                stage('Tag') {
 //                    sh """
@@ -192,14 +192,31 @@ try {
 //                        """
 //                    }
 //                }
-//
-//                    stage('Update Last Successful Build') {
-//                        sh """
-//                            cd ${env.BRANCH_DIR}
-//                            rm -f lastSuccessfulBuild
-//                            ln -s ${currentBuild.number} lastSuccessfulBuild
-//                        """
-//                    }
+
+                if (env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
+                    if (params.UPLOAD_PYPI) {
+                        stage('Upload to PyPI') {
+                            insideDocker([], buildConfig.DEFAULT_IMAGE, buildConfig.DOCKER_REGISTRY, 2, 'HOURS', "-v ${env.BRANCH_DIR}:${env.BRANCH_DIR}") {
+                                echo 'Upload to PyPI'
+                            }
+                        }
+                    }
+                    if (params.UPLOAD_CONDA) {
+                        stage('Upload to Conda') {
+                            insideDocker([], buildConfig.DEFAULT_IMAGE, buildConfig.DOCKER_REGISTRY, 2, 'HOURS', "-v ${env.BRANCH_DIR}:${env.BRANCH_DIR}") {
+                                echo 'Upload to Conda'
+                            }
+                        }
+                    }
+                }
+
+//                stage('Update Last Successful Build') {
+//                    sh """
+//                        cd ${env.BRANCH_DIR}
+//                        rm -f lastSuccessfulBuild
+//                        ln -s ${currentBuild.number} lastSuccessfulBuild
+//                    """
+//                }
             }
         }
     }
@@ -216,6 +233,7 @@ private setReleaseJobProperties() {
 
     if (env.BRANCH_NAME == 'master') {
         // in case of master branch enable the periodical builds and buildDiscarder
+        env.NIGHTLY_BUILD = "true"
         jobProperties += pipelineTriggers(
                 [cron('30 23 * * *')]
         )
@@ -223,12 +241,12 @@ private setReleaseJobProperties() {
                 logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '25')
         )
 
-    } else if (env.BRANCH_NAME.startsWith('rel-')) {
+    } else if (env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
         // in case of release branch, we have to set DO_RELEASE
         // and there should be options for pushing to PyPI and Conda
         env.DO_RELEASE = true
-        jobProperties += booleanParam(defaultValue: true, description: 'If true, publish to PyPI', name: 'PUBLISH_PYPI')
-        jobProperties += booleanParam(defaultValue: true, description: 'If true, publish to Conda', name: 'PUBLISH_CONDA')
+        jobProperties += booleanParam(defaultValue: true, description: 'If true, publish to PyPI', name: 'UPLOAD_PYPI')
+        jobProperties += booleanParam(defaultValue: true, description: 'If true, publish to Conda', name: 'UPLOAD_CONDA')
     }
     properties(jobProperties)
 }
